@@ -5,7 +5,17 @@ import (
     "fmt"
     "log"
     "net/http"
+    "net/url"
+    "strings"
 )
+
+func getOne(vals url.Values, key string) string {
+    v := vals[key]
+    if len(v) != 1 {
+        return ""
+    }
+    return v[0]
+}
 
 func handleRoot(w http.ResponseWriter, req *http.Request) {
     // The "/" pattern matches everything, so we need to check
@@ -15,24 +25,28 @@ func handleRoot(w http.ResponseWriter, req *http.Request) {
         return
     }
 
-    log.Printf("%s %v\n", req.Method, req.URL)
-    vals := req.URL.Query()
-    log.Printf("%v\n", vals)
+    if req.Method != "GET" {
+        http.Error(w, "bad method", http.StatusBadRequest)
+        return
+    }
 
-    arch := vals["arch"]
-    if len(arch) != 1 {
+    //log.Printf("%s %v\n", req.Method, req.URL)
+    vals := req.URL.Query()
+
+    arch := getOne(vals, "arch")
+    if arch == "" {
         http.Error(w, "arch not specified", http.StatusBadRequest)
         return
     }
 
-    repo := vals["repo"]
-    if len(repo) != 1 {
+    repo := strings.ToLower(getOne(vals, "repo"))
+    if repo == "" {
         http.Error(w, "repo not specified", http.StatusBadRequest)
         return
     }
 
-    release := vals["release"]
-    if len(release) != 1 {
+    release := getOne(vals, "release")
+    if release == "" {
         http.Error(w, "release not specified", http.StatusBadRequest)
         return
     }
