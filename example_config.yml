@@ -15,3 +15,9 @@
       - http://mirror.dal10.us.leaseweb.net/centos/7.8.2003/os/x86_64/
       - http://centos.mirror.lstn.net/7.8.2003/os/x86_64/
       - http://mirror.hostduplex.com/centos/7.8.2003/os/x86_64/
+
+"*":
+  "*":
+    "*":
+      - http://mirror.the-most-flexible.net/centos/{{.Release}}/{{.Repo}}/{{.Arch}}/
+      - http://even-moret.com/centos/{{.Repo}}/{{.Arch}}/{{.Release}}

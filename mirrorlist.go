@@ -8,6 +8,7 @@ import (
     "net/url"
     "os"
     "strings"
+    "text/template"
 
     "github.com/go-yaml/yaml"
 )
@@ -19,12 +20,49 @@ type mirrorListHandler struct {
     mirrors mirrorMap
 }
 
+type Qualifier struct {
+    Arch string
+    Release string
+    Repo string
+}
+
+
 func getOne(vals url.Values, key string) string {
     v := vals[key]
     if len(v) != 1 {
         return ""
     }
     return v[0]
+}
+
+func (h *mirrorListHandler) lookupUrls(q Qualifier) ([]string, error) {
+    var urls []string
+
+    repos, ok := h.mirrors[q.Release]
+    if !ok {
+        repos, ok = h.mirrors["*"]
+        if !ok {
+            return nil, fmt.Errorf("Invalid release")
+        }
+    }
+
+    archs, ok := repos[q.Repo]
+    if !ok {
+        archs, ok = repos["*"]
+        if !ok {
+            return nil, fmt.Errorf("Invalid repo")
+        }
+    }
+
+    urls, ok = archs[q.Arch]
+    if !ok {
+        urls, ok = archs["*"]
+        if !ok {
+            return nil, fmt.Errorf("Invalid arch")
+        }
+    }
+
+    return urls, nil
 }
 
 func (h *mirrorListHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -45,35 +83,48 @@ func (h *mirrorListHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) 
     // Handle the query string
     vals := req.URL.Query()
 
-    arch := getOne(vals, "arch")
-    if arch == "" {
+    var q Qualifier
+
+    q.Arch = getOne(vals, "arch")
+    if q.Arch == "" {
         http.Error(w, "arch not specified", http.StatusBadRequest)
         return
     }
 
-    repo := strings.ToLower(getOne(vals, "repo"))
-    if repo == "" {
+    q.Repo = strings.ToLower(getOne(vals, "repo"))
+    if q.Repo == "" {
         http.Error(w, "repo not specified", http.StatusBadRequest)
         return
     }
 
-    release := getOne(vals, "release")
-    if release == "" {
+    q.Release = getOne(vals, "release")
+    if q.Release == "" {
         http.Error(w, "release not specified", http.StatusBadRequest)
         return
     }
 
     // Look up url list
-    urls, ok := h.mirrors[release][repo][arch]
-    if !ok {
-        http.Error(w, "Invalid release/repo/arch combination", http.StatusNotFound)
+    urls, err := h.lookupUrls(q)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusNotFound)
         return
     }
 
+
+    t := template.New("url")
+
     for _, url := range urls {
-        fmt.Fprintln(w, url)
+        tp, err := t.Parse(url)
+        if err != nil {
+            log.Printf("Error parsing template: %v", err)
+            continue
+        }
+
+        tp.Execute(w, q)
+        fmt.Fprintln(w, "")
     }
 }
+
 
 
 func loadConfig(path string) (mirrorMap, error) {
