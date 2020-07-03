@@ -16,8 +16,13 @@ import (
 // mirrorMap is a mapping of release: repo: arch: list of urls
 type mirrorMap map[string]map[string]map[string][]string
 
+type config struct {
+    Listen string
+    Mirrors mirrorMap
+}
+
 type mirrorListHandler struct {
-    mirrors mirrorMap
+    config config
 }
 
 type Qualifier struct {
@@ -36,11 +41,12 @@ func getOne(vals url.Values, key string) string {
 }
 
 func (h *mirrorListHandler) lookupUrls(q Qualifier) ([]string, error) {
+    mirrors := h.config.Mirrors
     var urls []string
 
-    repos, ok := h.mirrors[q.Release]
+    repos, ok := mirrors[q.Release]
     if !ok {
-        repos, ok = h.mirrors["*"]
+        repos, ok = mirrors["*"]
         if !ok {
             return nil, fmt.Errorf("Invalid release")
         }
@@ -125,23 +131,29 @@ func (h *mirrorListHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) 
     }
 }
 
+func loadConfig(path string, cfg *config) error {
+    // Set defaults
+    cfg.Listen = ":8080"
 
-
-func loadConfig(path string) (mirrorMap, error) {
+    // Open config file
     f, err := os.Open(path)
     if err != nil {
-        return nil, fmt.Errorf("Error opening config: %w", err)
+        return fmt.Errorf("Error opening config: %w", err)
     }
 
+    // Decode yaml file into config object
     d := yaml.NewDecoder(f)
-
-    v := make(mirrorMap)
-    err = d.Decode(v)
+    err = d.Decode(cfg)
     if err != nil {
-        return nil, fmt.Errorf("Error reading config: %w", err)
+        return fmt.Errorf("Error reading config: %w", err)
     }
 
-    return v, nil
+    // Verify config was populated
+    if len(cfg.Mirrors) == 0 {
+        return fmt.Errorf("Error reading config: failed to populate mirrors")
+    }
+
+    return nil
 }
 
 func main() {
@@ -154,7 +166,7 @@ func main() {
     }
     configPath := os.Args[1]
 
-    handler.mirrors, err = loadConfig(configPath)
+    err = loadConfig(configPath, &handler.config)
     if err != nil {
         fmt.Fprintf(os.Stderr, "%v\n", err)
         os.Exit(1)
@@ -162,7 +174,7 @@ func main() {
 
     http.Handle("/", &handler)
 
-    addr := ":8080"
+    addr := handler.config.Listen
     log.Println("Serving on " + addr)
-    log.Fatal(http.ListenAndServe(":8080", nil))
+    log.Fatal(http.ListenAndServe(addr, nil))
 }

@@ -1,23 +1,35 @@
-# release: repo: arch: mirror list
-6:
-  os:
-    x86_64:
-      - http://mirror.clarkson.edu/centos/6.10/os/x86_64/
-      - http://www.gtlib.gatech.edu/pub/centos/6.10/os/x86_64/
-      - http://sjc.edge.kernel.org/centos/6.10/os/x86_64/
-    i386:
-      - http://mirror.atlanticmetro.net/centos/6.10/os/i386/
-      - http://repos.dfw.quadranet.com/centos/6.10/os/i386/
-      - http://ewr.edge.kernel.org/centos/6.10/os/i386/
-7:
-  os:
-    x86_64:
-      - http://mirror.dal10.us.leaseweb.net/centos/7.8.2003/os/x86_64/
-      - http://centos.mirror.lstn.net/7.8.2003/os/x86_64/
-      - http://mirror.hostduplex.com/centos/7.8.2003/os/x86_64/
+# Example configuration file
 
-"*":
+# The address:port on which listen/serve HTTP
+# Defaults to ":8080" if not set
+listen: ":80"
+
+# The list of mirror URLs
+# Organized by release: repo: arch: - mirror list
+# "*" matches anything
+# URLs can be templates and use the following variables:
+#   .Release
+#   .Repo
+#   .Arch
+mirrors:
+  6:
+    os:
+      x86_64:
+        - http://mirror.clarkson.edu/centos/6.10/os/x86_64/
+        - http://www.gtlib.gatech.edu/pub/centos/6.10/os/x86_64/
+        - http://sjc.edge.kernel.org/centos/6.10/os/x86_64/
+      i386:
+        - http://mirror.atlanticmetro.net/centos/6.10/os/i386/
+        - http://repos.dfw.quadranet.com/centos/6.10/os/i386/
+        - http://ewr.edge.kernel.org/centos/6.10/os/i386/
+  7:
+    os:
+      x86_64:
+        - http://mirror.dal10.us.leaseweb.net/centos/7.8.2003/os/x86_64/
+        - http://centos.mirror.lstn.net/7.8.2003/os/x86_64/
+        - http://mirror.hostduplex.com/centos/7.8.2003/os/x86_64/
   "*":
     "*":
-      - http://mirror.the-most-flexible.net/centos/{{.Release}}/{{.Repo}}/{{.Arch}}/
-      - http://even-moret.com/centos/{{.Repo}}/{{.Arch}}/{{.Release}}
+      "*":
+        - http://mirror.the-most-flexible.net/centos/{{.Release}}/{{.Repo}}/{{.Arch}}/
+        - http://even-moret.com/centos/{{.Repo}}/{{.Arch}}/{{.Release}}
