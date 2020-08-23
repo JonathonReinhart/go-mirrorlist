@@ -1,4 +1,5 @@
 // https://github.com/CentOS/mirrorlists-code/blob/master/frontend/ml.py
+// https://github.com/fedora-infra/mirrormanager2/blob/0.14/mirrorlist/mirrorlist_server.py
 package main
 
 import (
